@@ -1,72 +1,39 @@
-#!/usr/bin/python3
-
-"""search post function"""
-
 import json
 import operator
 import requests
 
-
-def count_words(subreddit, word_list, after=None):
-    """get all the keyword count"""
-
+def count_words(subreddit, word_list, after=None, word_count=None):
+    if word_count is None:
+        word_count = {}
+    
     if len(word_list) == 0:
-        print(None)
+        sorted_list = sorted(word_count.items(), key=lambda x: (-x[1], x[0]))
+        for key, count in sorted_list:
+            print(f"{key}: {count}")
         return
-    url = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
+
+    url = f"https://www.reddit.com/r/{subreddit}/hot.json"
     headers = {"User-Agent": "Mozilla/5.0"}
-    result = requests.get(url,
-                          headers=headers,
-                          params={"after": after},
-                          allow_redirects=False)
+    params = {"after": after} if after else None
+
+    result = requests.get(url, headers=headers, params=params, allow_redirects=False)
+
     if result.status_code != 200:
-        return None
-    body = json.loads(result.text)
-    if body["data"]["after"] is not None:
-        newlist = word_list
-        if type(word_list[0]) is str:
-            temp = []
-            for i in word_list:
-                if not any(j['key'].lower() == i.lower() for j in temp):
-                    temp.append({"key": i.lower(), "count": 0, "times": 1})
-                else:
-                    item = list(filter(
-                                lambda search: search['key'] == i.lower(),
-                                temp))
-                    if len(item) > 0:
-                        item[0]["times"] = item[0]["times"] + 1
-            newlist = temp
-        for i in newlist:
-            for j in body["data"]["children"]:
-                for k in j["data"]["title"].lower().split():
-                    if i["key"] == k:
-                        i["count"] = i["count"] + 1
-        return count_words(subreddit, newlist, body["data"]["after"])
-    else:
-        newlist = word_list
-        if type(word_list[0]) is str:
-            temp = []
-            for i in word_list:
-                if not any(j['key'].lower() == i.lower() for j in temp):
-                    temp.append({"key": i.lower(), "count": 0, "times": 1})
-                else:
-                    item = list(filter(
-                                lambda search: search['key'] == i.lower(),
-                                temp))
-                    if len(item) > 0:
-                        item[0]["times"] = item[0]["times"] + 1
-            newlist = temp
-        for i in newlist:
-            for j in body["data"]["children"]:
-                for k in j["data"]["title"].lower().split():
-                    if i["key"] == k:
-                        i["count"] = i["count"] + 1
-        key = operator.itemgetter("key")
-        sorted_list = sorted(word_list, key=key)
-        key = operator.itemgetter("count")
-        sorted_list = sorted(sorted_list, key=key, reverse=True)
-        word_list = sorted_list
-        for i in sorted_list:
-            if i["count"] > 0:
-                print("{}: {}".format(i["key"], i["count"] * i["times"]))
         return
+
+    body = json.loads(result.text)
+
+    for post in body["data"]["children"]:
+        title_words = post["data"]["title"].lower().split()
+        for word in word_list:
+            if word.lower() in title_words:
+                if word in word_count:
+                    word_count[word] += 1
+                else:
+                    word_count[word] = 1
+
+    after = body["data"]["after"]
+    return count_words(subreddit, word_list, after, word_count)
+
+# Example usage:
+count_words("programming", ["react", "python", "java", "javascript", "scala", "no_results_for_this_one"])
