@@ -1,6 +1,11 @@
+#!/usr/bin/python3
+""" 3-count.py """
+
 import json
 import operator
 import requests
+
+
 
 def count_words(subreddit, word_list, after=None, word_count=None):
     if word_count is None:
