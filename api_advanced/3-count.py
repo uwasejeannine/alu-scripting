@@ -8,6 +8,7 @@ import requests
 
 
 def count_words(subreddit, word_list, after=None, word_count=None):
+    """ Prints a sorted count of given keywords """
     if word_count is None:
         word_count = {}
     
